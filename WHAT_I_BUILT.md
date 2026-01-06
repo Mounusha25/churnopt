@@ -89,25 +89,6 @@ Build a batch-oriented ML system to predict customer churn and optimize retentio
 
 ---
 
-## 💼 Interviewer FAQs
-
-**Q: Why only 659 customers in production?**  
-A: $50K budget constraint. Decision engine ranks by expected value and stops at budget limit. Unconstrained optimal is 25,100 customers ($1.24M profit), but production systems have real constraints.
-
-**Q: Why not deploy real-time API?**  
-A: Churn is slow-moving (monthly billing cycles). Batch processing is simpler, cheaper, and sufficient. Real-time adds complexity without business value here.
-
-**Q: How did you validate the system?**  
-A: Two ways: (1) Profit curve shows non-monotonic economics (peaks then declines), (2) Unconstrained mode captures 96.4% of theoretical optimal, proving decision engine logic is correct.
-
-**Q: What's the false positive penalty?**  
-A: Cost of offering incentive to customer who wouldn't have churned anyway. Set at $300 (wasted offer) vs $50 (true positive cost). This creates breakeven probability of 0.71 and realistic profit curve.
-
-**Q: Production-ready?**  
-A: For batch deployment, yes. Has temporal correctness, budget constraints, monitoring design, rollback procedures. Would need CRM integration and business process approval for actual deployment.
-
----
-
 ## 📁 Repository Contents
 
 - **Temporal dataset**: 199,680 snapshots (datasets/monthly_customer_snapshots.parquet)
@@ -141,12 +122,6 @@ A: For batch deployment, yes. Has temporal correctness, budget constraints, moni
 
 ---
 
-## 🎤 Elevator Pitch (30 seconds)
-
-*"I built a churn prediction system with realistic economics. Most projects ignore false positive costs — I modeled them explicitly at $300 per wasted incentive. This creates a non-monotonic profit curve that peaks at 25,100 customers, then declines. In production mode with a $50K budget, the system targets 659 high-value customers at 105% ROI. The key insight: both 659 and 25,100 are correct — they solve different optimization problems. I validated this by showing the decision engine captures 96.4% of the theoretical optimal profit."*
-
----
-
-**GitHub**: [Your Repo URL]  
-**Contact**: [Your Email]  
-**LinkedIn**: [Your LinkedIn]
+**GitHub**: https://github.com/Mounusha25/churnopt  
+**Contact**: mmetti@asu.edu  
+**LinkedIn**: https://www.linkedin.com/in/mounusha-ram-metti/
