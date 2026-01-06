@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # API Service
+  churn-api:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: churn-prediction-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../models:/app/models:ro  # Read-only model access
+      - ../feature_store:/app/feature_store:ro
+      - ../logs:/app/logs
+    environment:
+      - LOG_LEVEL=INFO
+    command: uvicorn src.inference.api:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  
+  # Batch Inference (scheduled job)
+  churn-batch:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: churn-batch-inference
+    volumes:
+      - ../data:/app/data
+      - ../datasets:/app/datasets
+      - ../feature_store:/app/feature_store
+      - ../models:/app/models:ro
+      - ../outputs:/app/outputs
+      - ../logs:/app/logs
+    environment:
+      - LOG_LEVEL=INFO
+    command: python -m src.inference.batch --snapshot-date 2024-12-01
+    profiles:
+      - batch  # Only run when explicitly specified
+
+  # Training Service (on-demand)
+  churn-training:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: churn-model-training
+    volumes:
+      - ../data:/app/data
+      - ../datasets:/app/datasets
+      - ../feature_store:/app/feature_store
+      - ../models:/app/models
+      - ../logs:/app/logs
+    environment:
+      - LOG_LEVEL=INFO
+    command: python -m src.training_pipeline.run
+    profiles:
+      - training  # Only run when explicitly specified
+
+# To run:
+# API: docker-compose up churn-api
+# Batch: docker-compose --profile batch up churn-batch
+# Training: docker-compose --profile training up churn-training

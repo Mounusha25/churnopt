@@ -1,0 +1,25 @@
+{
+  "sample_sizes": {
+    "treatment": 503,
+    "control": 497
+  },
+  "churn_rates": {
+    "treatment": 0.5566600397614314,
+    "control": 0.89738430583501,
+    "absolute_lift": 0.34072426607357864,
+    "relative_lift_pct": 37.9686009503517
+  },
+  "statistical_test": {
+    "z_statistic": -12.07874074727706,
+    "p_value": 1.3679868619148479e-33,
+    "significant_at_5pct": 1.0,
+    "significant_at_1pct": 1.0
+  },
+  "financial_impact": {
+    "total_cost": 25150.0,
+    "total_value_saved": 73872.0,
+    "net_value": 48722.0,
+    "roi_pct": 193.72564612326045,
+    "value_per_customer": 96.86282306163022
+  }
+}

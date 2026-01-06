@@ -1,0 +1,129 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: churn-batch-inference
+  namespace: churn-prediction
+  labels:
+    app: churn-batch
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      labels:
+        app: churn-batch
+    spec:
+      template:
+        metadata:
+          labels:
+            app: churn-batch
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: batch-inference
+            image: gcr.io/your-project/churn-prediction:latest  # UPDATE THIS
+            command: ["python"]
+            args:
+              - "run_pipeline.py"
+              - "--mode"
+              - "inference_only"
+            env:
+            - name: ENVIRONMENT
+              value: "production"
+            resources:
+              requests:
+                cpu: "1000m"
+                memory: "4Gi"
+              limits:
+                cpu: "4000m"
+                memory: "16Gi"
+            volumeMounts:
+            - name: feature-store
+              mountPath: /app/feature_store
+            - name: model-registry
+              mountPath: /app/models/registry
+            - name: logs
+              mountPath: /app/logs
+            - name: config
+              mountPath: /app/configs
+              readOnly: true
+          volumes:
+          - name: feature-store
+            persistentVolumeClaim:
+              claimName: feature-store-pvc
+          - name: model-registry
+            persistentVolumeClaim:
+              claimName: model-registry-pvc
+          - name: logs
+            persistentVolumeClaim:
+              claimName: logs-pvc
+          - name: config
+            configMap:
+              name: churn-config
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: churn-model-training
+  namespace: churn-prediction
+  labels:
+    app: churn-training
+spec:
+  schedule: "0 0 * * 0"  # Weekly on Sunday at midnight
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      labels:
+        app: churn-training
+    spec:
+      template:
+        metadata:
+          labels:
+            app: churn-training
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: model-training
+            image: gcr.io/your-project/churn-prediction:latest  # UPDATE THIS
+            command: ["python"]
+            args:
+              - "run_pipeline.py"
+              - "--mode"
+              - "train_only"
+            env:
+            - name: ENVIRONMENT
+              value: "production"
+            resources:
+              requests:
+                cpu: "2000m"
+                memory: "8Gi"
+              limits:
+                cpu: "8000m"
+                memory: "32Gi"
+            volumeMounts:
+            - name: feature-store
+              mountPath: /app/feature_store
+            - name: model-registry
+              mountPath: /app/models/registry
+            - name: logs
+              mountPath: /app/logs
+            - name: config
+              mountPath: /app/configs
+              readOnly: true
+          volumes:
+          - name: feature-store
+            persistentVolumeClaim:
+              claimName: feature-store-pvc
+          - name: model-registry
+            persistentVolumeClaim:
+              claimName: model-registry-pvc
+          - name: logs
+            persistentVolumeClaim:
+              claimName: logs-pvc
+          - name: config
+            configMap:
+              name: churn-config

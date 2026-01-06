@@ -1,0 +1,272 @@
+# Decision Engine Configuration
+
+# Customer Lifetime Value (CLV) estimation
+clv:
+  # Simple CLV model parameters
+  method: "simple"  # Options: "simple", "cohort_based", "ml_based"
+  
+  # Simple CLV = avg_monthly_revenue * expected_lifetime_months * margin
+  simple:
+    # Discount rate (annual)
+    discount_rate: 0.10
+    
+    # Profit margin
+    margin: 0.30
+    
+    # Default expected lifetime (months)
+    default_lifetime_months: 24
+    
+    # CLV by customer segment (if available)
+    by_segment:
+      high_value:
+        monthly_revenue: 100
+        expected_lifetime: 36
+        margin: 0.35
+      
+      medium_value:
+        monthly_revenue: 60
+        expected_lifetime: 24
+        margin: 0.30
+      
+      low_value:
+        monthly_revenue: 30
+        expected_lifetime: 12
+        margin: 0.25
+  
+  # Use actual monthly_charges if available
+  use_actual_charges: true
+
+# Retention strategy
+retention:
+  # Estimated success rate of retention intervention
+  success_rate: 0.40  # 40% of targeted customers stay
+  
+  # Success rate by segment
+  success_rate_by_segment:
+    high_value: 0.50
+    medium_value: 0.40
+    low_value: 0.30
+  
+  # Retention costs
+  costs:
+    # Default intervention cost (base cost)
+    default_cost: 50.0
+    
+    # Variable cost model with FALSE POSITIVE PENALTY
+    # Key insight: Cost differs based on whether customer WOULD have churned
+    # - True Positive (would churn): intervention cost
+    # - False Positive (wouldn't churn): WASTED discount (higher cost!)
+    variable_cost_model:
+      enabled: true
+      
+      # True positive cost (customer WOULD churn if not retained)
+      cost_true_positive: 50.0
+      
+      # False positive cost (customer WOULD NOT churn - wasted incentive!)
+      # EXTREMELY high: incentive completely wasted + gaming risk
+      cost_false_positive: 300.0
+      
+      # This creates natural profit peak:
+      # - High p: mostly true positives, good ROI
+      # - Medium p: mixed, optimal point
+      # - Low p: mostly false positives (1-p large), negative marginal profit
+      
+      # Legacy quadratic model (used if FP costs not specified)
+      use_quadratic: false
+      base_cost: 15.0
+      risk_multiplier: 210.0
+    
+    # Cost by intervention type (fallback if variable model disabled)
+    by_intervention:
+      discount_offer: 40.0
+      retention_call: 20.0
+      loyalty_program: 30.0
+      premium_support: 60.0
+    
+    # Cost by customer segment (fallback if variable model disabled)
+    by_segment:
+      high_value: 75.0
+      medium_value: 50.0
+      low_value: 25.0
+
+# Decision logic
+decision:
+  # Expected value calculation
+  # EV = p_churn * CLV * retention_success_rate - retention_cost
+  
+  # Only target customers where EV > threshold
+  min_expected_value: 0.0
+  
+  # Churn probability thresholds
+  probability_thresholds:
+    # Minimum probability to consider (avoid wasting effort on unlikely churners)
+    min_churn_probability: 0.30
+    
+    # Maximum probability (too late to save)
+    max_churn_probability: 0.90
+    
+    # Optimal range by segment
+    by_segment:
+      high_value:
+        min: 0.25
+        max: 0.85
+      
+      medium_value:
+        min: 0.30
+        max: 0.90
+      
+      low_value:
+        min: 0.40
+        max: 0.95
+  
+  # Customer segmentation for targeting
+  segmentation:
+    # Segment customers by value
+    method: "clv_based"  # Options: "clv_based", "tenure_based", "revenue_based"
+    
+    # CLV-based segments
+    clv_thresholds:
+      high_value: 2000  # CLV > $2000
+      medium_value: 800  # CLV $800-$2000
+      # low_value: < $800
+
+# Intervention strategy
+interventions:
+  # Map risk segments to interventions
+  strategy:
+    high_value_high_risk:
+      action: "premium_support"
+      description: "Dedicated account manager + discount"
+      cost: 75.0
+    
+    high_value_medium_risk:
+      action: "retention_call"
+      description: "Proactive call from retention team"
+      cost: 50.0
+    
+    medium_value_high_risk:
+      action: "discount_offer"
+      description: "20% discount for 3 months"
+      cost: 40.0
+    
+    medium_value_medium_risk:
+      action: "loyalty_program"
+      description: "Loyalty rewards enrollment"
+      cost: 30.0
+    
+    low_value_high_risk:
+      action: "discount_offer"
+      description: "10% discount for 2 months"
+      cost: 25.0
+  
+  # Risk level thresholds
+  risk_levels:
+    high: 0.60  # p_churn > 0.60
+    medium: 0.40  # 0.40 < p_churn <= 0.60
+    low: 0.30  # p_churn <= 0.30
+
+# Budget constraints
+budget:
+  # Maximum monthly retention budget
+  # Set to null for unconstrained simulation mode
+  max_monthly_budget: 50000.0  # PRODUCTION: $50K budget constraint
+  
+  # If budget exceeded, prioritize by:
+  priority_metric: "expected_value"  # Options: "expected_value", "clv", "churn_probability"
+  
+  # Reserve budget for high-value customers
+  reserve_for_high_value_pct: 0.30
+
+# Targeting rules
+targeting:
+  # Maximum customers to target per month
+  # Set to null for unconstrained simulation mode
+  max_customers_per_month: 1000  # PRODUCTION: Operational capacity limit
+  
+  # Exclusion rules
+  exclusions:
+    # Don't target customers who churned in last N months
+    exclude_recently_churned: true
+    recently_churned_months: 6
+    
+    # Don't target customers already in retention program
+    exclude_in_retention_program: true
+    
+    # Don't target brand new customers
+    exclude_tenure_less_than_months: 3
+  
+  # Timing
+  timing:
+    # Optimal days before billing cycle to intervene
+    days_before_billing: 7
+    
+    # Don't contact same customer within N days
+    contact_cooldown_days: 30
+
+# Evaluation
+evaluation:
+  # Metrics to track
+  metrics:
+    - "total_customers_targeted"
+    - "total_cost"
+    - "expected_value_total"
+    - "expected_customers_retained"
+    - "roi"  # ROI = (expected_value - cost) / cost
+    - "precision_at_k"
+  
+  # K for precision@k
+  k_values: [5, 10, 20]
+  
+  # Compare against baseline
+  baseline:
+    method: "rule_based"
+    description: "Target high tenure + high charges customers"
+
+# A/B testing
+ab_testing:
+  # Enable A/B testing of decision strategies
+  enabled: true
+  
+  # Test groups
+  groups:
+    treatment:
+      name: "model_based"
+      description: "ML model + decision engine"
+      traffic_pct: 0.50
+    
+    control:
+      name: "rule_based"
+      description: "Simple rule-based targeting"
+      traffic_pct: 0.50
+  
+  # Test duration
+  duration_days: 30
+  
+  # Metrics to compare
+  metrics:
+    - "retention_rate"
+    - "cost_per_retained_customer"
+    - "roi"
+    - "net_revenue_impact"
+
+# Reporting
+reporting:
+  # Generate decision reports
+  enabled: true
+  
+  # Report frequency
+  frequency: "monthly"
+  
+  # Output path
+  output_path: "outputs/decision_reports"
+  
+  # Include visualizations
+  include_plots: true
+  
+  # Format
+  format: "html"
+
+# Logging
+logging:
+  level: "INFO"
+  path: "logs/decision_engine.log"

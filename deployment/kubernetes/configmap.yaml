@@ -1,0 +1,128 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: churn-config
+  namespace: churn-prediction
+data:
+  # All configuration files as ConfigMap entries
+  # These will be mounted as volumes in pods
+  
+  data.yaml: |
+    # Data configuration
+    raw_data_path: "data/raw/telco.csv"
+    processed_data_path: "data/processed"
+    
+    temporal:
+      snapshot_start_date: "2019-01-01"
+      snapshot_end_date: "2020-12-31"
+      snapshot_frequency: "MS"
+      label_window_days: 30
+      min_history_months: 3
+    
+    columns:
+      customer_id: "customerID"
+      target: "Churn"
+      categorical:
+        - gender
+        - SeniorCitizen
+        - Partner
+        - Dependents
+        - PhoneService
+        - MultipleLines
+        - InternetService
+        - OnlineSecurity
+        - OnlineBackup
+        - DeviceProtection
+        - TechSupport
+        - StreamingTV
+        - StreamingMovies
+        - Contract
+        - PaperlessBilling
+        - PaymentMethod
+      numerical:
+        - tenure
+        - MonthlyCharges
+        - TotalCharges
+  
+  features.yaml: |
+    feature_store:
+      offline_path: "feature_store/offline"
+      online_path: "feature_store/online/features.db"
+      version: "v1"
+    
+    rolling_windows:
+      charges:
+        source: "MonthlyCharges"
+        windows: [3, 6, 12]
+        aggregations: ["mean", "std", "min", "max"]
+      
+      tenure:
+        source: "tenure"
+        windows: [3, 6]
+        aggregations: ["mean"]
+    
+    categorical_features:
+      - Contract
+      - InternetService
+      - PaymentMethod
+    
+    temporal_features:
+      - day_of_month
+      - month_of_year
+      - quarter
+  
+  training.yaml: |
+    model:
+      algorithm: "xgboost"
+      hyperparameters:
+        max_depth: 6
+        learning_rate: 0.1
+        n_estimators: 100
+        scale_pos_weight: 3.0
+        random_state: 42
+    
+    validation:
+      test_size: 0.2
+      time_based_split: true
+    
+    metrics:
+      primary: "pr_auc"
+      track:
+        - roc_auc
+        - precision
+        - recall
+        - f1
+  
+  inference.yaml: |
+    batch:
+      output_path: "outputs/scores"
+      save_format: "parquet"
+      include_shap: true
+    
+    api:
+      model_version: "production"
+      cache_ttl_seconds: 300
+  
+  decision.yaml: |
+    clv:
+      monthly_revenue_multiplier: 1.0
+      discount_rate: 0.1
+      default_months: 24
+    
+    targeting:
+      min_churn_probability: 0.3
+      min_expected_value: 50.0
+    
+    retention:
+      cost_per_contact: 25.0
+      retention_rate: 0.5
+  
+  monitoring.yaml: |
+    drift:
+      psi_threshold: 0.1
+      kl_threshold: 0.05
+      check_frequency_days: 7
+    
+    retraining:
+      auto_trigger: true
+      min_performance_drop: 0.05

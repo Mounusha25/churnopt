@@ -1,0 +1,163 @@
+# Inference Configuration
+
+# Model selection
+model:
+  # Use production model from registry
+  use_production_model: true
+  
+  # Or specify version explicitly
+  version: "latest"  # or "model_v1", "model_v2", etc.
+  
+  # Model path (if not using registry)
+  model_path: null
+
+# Inference type
+inference:
+  mode: "batch"  # Options: "batch", "realtime"
+  
+  # Batch inference settings
+  batch:
+    # Input data source
+    input_source: "feature_store"  # Options: "feature_store", "file"
+    
+    # If using file
+    input_file: null
+    
+    # Snapshot date(s) to score
+    snapshot_dates: ["2024-12-01"]  # List of dates or "latest"
+    
+    # Output settings
+    output_path: "outputs"
+    output_format: "parquet"  # Options: "parquet", "csv"
+    
+    # Include explanations
+    include_explanations: true
+    
+    # Batch size for processing
+    batch_size: 10000
+  
+  # Real-time inference settings
+  realtime:
+    # API configuration
+    host: "0.0.0.0"
+    port: 8000
+    
+    # Feature source
+    feature_source: "online_store"  # Options: "online_store", "compute_on_demand"
+    
+    # Cache settings
+    cache_enabled: true
+    cache_ttl_seconds: 300
+    
+    # Response format
+    include_explanations: true
+    explanation_depth: "summary"  # Options: "summary", "detailed"
+
+# Feature retrieval
+features:
+  # Feature schema version
+  schema_version: "v1"
+  
+  # Feature groups to use
+  feature_groups: "all"  # or list specific groups
+  
+  # Handle missing features
+  missing_feature_strategy: "impute"  # Options: "impute", "error", "skip"
+  
+  # Imputation strategy
+  imputation:
+    numeric: "median"
+    categorical: "mode"
+
+# Predictions
+predictions:
+  # Output columns
+  output_columns:
+    - "customer_id"
+    - "snapshot_date"
+    - "churn_probability"
+    - "risk_segment"
+    - "prediction_timestamp"
+  
+  # Risk segmentation
+  risk_segments:
+    high: 0.60    # p_churn >= 0.60
+    medium: 0.40  # 0.40 <= p_churn < 0.60
+    low: 0.30     # p_churn < 0.30
+  
+  # Calibration
+  apply_calibration: true
+
+# Explainability
+explanations:
+  # Method
+  method: "shap"  # Options: "shap", "lime", "feature_importance"
+  
+  # SHAP settings
+  shap:
+    # Explainer type
+    explainer: "tree"  # Options: "tree", "kernel", "linear"
+    
+    # Number of samples for kernel explainer
+    kernel_sample_size: 100
+    
+    # Top N features to include
+    top_n_features: 10
+    
+    # Generate plots
+    generate_plots: false  # True for debugging only
+  
+  # Summary level
+  summary_level: "top_features"  # Options: "top_features", "all_features", "aggregated"
+
+# Performance
+performance:
+  # Parallel processing
+  n_jobs: -1  # Use all cores
+  
+  # Memory management
+  chunk_size: 10000  # Process in chunks to avoid memory issues
+  
+  # Monitoring
+  log_performance_metrics: true
+
+# Quality checks
+quality_checks:
+  # Validate predictions
+  validate_outputs: true
+  
+  # Check for invalid predictions
+  check_invalid_probabilities: true  # e.g., NaN, < 0, > 1
+  
+  # Expected prediction distribution
+  expected_distribution:
+    mean_probability: 0.15
+    std_probability: 0.20
+    tolerance: 0.05
+  
+  # Alert on anomalies
+  alert_on_anomalies: true
+
+# Logging
+logging:
+  level: "INFO"
+  path: "logs/inference.log"
+  
+  # Log predictions
+  log_predictions: true
+  
+  # Rotation
+  rotation: "daily"
+  retention_days: 90
+
+# Metadata
+metadata:
+  # Include metadata in output
+  include_metadata: true
+  
+  # Metadata fields
+  fields:
+    - "model_version"
+    - "feature_schema_version"
+    - "prediction_timestamp"
+    - "inference_duration_ms"

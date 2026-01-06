@@ -1,0 +1,245 @@
+# Monitoring and Drift Detection Configuration
+
+# Data drift detection
+data_drift:
+  # Features to monitor
+  monitor_features: "all"  # or list specific features
+  
+  # Drift detection methods
+  methods:
+    psi:
+      enabled: true
+      threshold: 0.2  # PSI > 0.2 indicates significant drift
+      bins: 10
+    
+    kl_divergence:
+      enabled: true
+      threshold: 0.1
+    
+    ks_test:
+      enabled: true
+      p_value_threshold: 0.05
+    
+    wasserstein:
+      enabled: false  # Computationally expensive
+      threshold: 0.3
+  
+  # Reference data (baseline for comparison)
+  reference:
+    # Use training data as reference
+    use_training_data: true
+    
+    # Or specify date range
+    start_date: "2024-01-01"
+    end_date: "2024-03-31"
+  
+  # Comparison data (recent production data)
+  comparison:
+    # Rolling window of recent data
+    window_months: 1
+    
+    # Minimum sample size
+    min_sample_size: 1000
+
+# Concept drift detection
+concept_drift:
+  # Monitor model performance over time
+  metrics:
+    - "roc_auc"
+    - "pr_auc"
+    - "brier_score"
+    - "precision_at_10pct"
+  
+  # Thresholds (relative degradation from training)
+  thresholds:
+    roc_auc_min: 0.70  # Absolute minimum
+    roc_auc_drop: 0.10  # 10% relative drop
+    
+    pr_auc_min: 0.45
+    pr_auc_drop: 0.15
+    
+    brier_score_max: 0.25
+    brier_score_increase: 0.20
+  
+  # Evaluation frequency
+  eval_frequency_days: 30
+  
+  # Delayed labels
+  # (Churn outcomes may not be known immediately)
+  label_delay_months: 1
+
+# Model health monitoring
+model_health:
+  # Score distribution monitoring
+  score_distribution:
+    # Expected mean and std (from training)
+    expected_mean: 0.15
+    expected_std: 0.20
+    
+    # Deviation thresholds
+    mean_deviation_threshold: 0.05
+    std_deviation_threshold: 0.05
+  
+  # Calibration drift
+  calibration:
+    # Number of bins for calibration curve
+    n_bins: 10
+    
+    # Expected Calibration Error (ECE) threshold
+    ece_threshold: 0.10
+    
+    # Brier score threshold
+    brier_threshold: 0.25
+  
+  # Prediction volume monitoring
+  volume:
+    # Expected predictions per day
+    expected_daily_predictions: 1000
+    
+    # Alert if outside range
+    min_daily_predictions: 500
+    max_daily_predictions: 5000
+
+# Business KPI monitoring
+business_kpis:
+  # Retention metrics
+  retention:
+    # Baseline retention rate (no intervention)
+    baseline_retention_rate: 0.73
+    
+    # Expected lift from model
+    expected_lift: 0.15  # 15% improvement
+    
+    # Minimum acceptable lift
+    min_acceptable_lift: 0.05
+  
+  # Precision at K
+  precision_at_k:
+    k: 10  # Top 10% of customers
+    min_precision: 0.40
+  
+  # Cost metrics
+  costs:
+    # Average retention cost per customer
+    avg_retention_cost: 50.0
+    
+    # Alert if cost exceeds threshold
+    max_cost_per_retained_customer: 500.0
+
+# Alerting
+alerts:
+  # Alert channels
+  channels:
+    - "log"  # Always log to file
+    # - "email"  # Uncomment for email alerts
+    # - "slack"  # Uncomment for Slack integration
+  
+  # Alert severity levels
+  severity:
+    data_drift_high: "warning"
+    concept_drift: "critical"
+    model_health_issue: "warning"
+    business_kpi_degradation: "critical"
+  
+  # Alert frequency (to avoid spam)
+  cooldown_hours: 24
+  
+  # Contact information
+  contacts:
+    email: "ml-team@company.com"
+    slack_channel: "#ml-alerts"
+
+# Monitoring frequency
+frequency:
+  # How often to run monitoring checks
+  data_drift_check: "daily"
+  concept_drift_check: "weekly"
+  model_health_check: "daily"
+  business_kpi_check: "weekly"
+
+# Reporting
+reports:
+  # Generate monitoring reports
+  enabled: true
+  
+  # Output path
+  output_path: "outputs/monitoring_reports"
+  
+  # Report format
+  format: "html"  # Options: "html", "pdf", "markdown"
+  
+  # Include visualizations
+  include_plots: true
+  
+  # Report frequency
+  frequency: "weekly"
+
+# Data quality checks
+data_quality:
+  # Check for missing values
+  missing_values:
+    enabled: true
+    max_missing_pct: 5.0  # Alert if >5% missing
+  
+  # Check for duplicates
+  duplicates:
+    enabled: true
+    check_columns: ["customer_id", "snapshot_date"]
+  
+  # Check for outliers
+  outliers:
+    enabled: true
+    method: "iqr"
+    threshold: 3.0
+  
+  # Schema validation
+  schema_validation:
+    enabled: true
+    enforce_dtypes: true
+    enforce_ranges: true
+
+# Retraining triggers
+retraining_triggers:
+  # Automatic retraining conditions
+  triggers:
+    # Time-based
+    time_based:
+      enabled: true
+      frequency_days: 30  # Retrain monthly
+    
+    # Drift-based
+    drift_based:
+      enabled: true
+      data_drift_threshold: 0.25  # PSI > 0.25
+      concept_drift_threshold: 0.10  # 10% performance drop
+    
+    # KPI-based
+    kpi_based:
+      enabled: true
+      lift_drop_threshold: 0.30  # 30% drop in lift
+  
+  # Retraining strategy
+  strategy:
+    # Use expanded data window
+    expand_training_window: true
+    
+    # Retune hyperparameters
+    retune_hyperparameters: true
+    
+    # Require manual approval before deployment
+    require_approval: false
+  
+  # A/B testing after retraining
+  ab_test:
+    enabled: true
+    duration_days: 14
+    traffic_split: 0.5  # 50/50 split
+
+# Logging
+logging:
+  level: "INFO"
+  path: "logs/monitoring.log"
+  
+  # Rotation
+  rotation: "daily"
+  retention_days: 90

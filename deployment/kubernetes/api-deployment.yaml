@@ -1,0 +1,135 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: churn-api
+  namespace: churn-prediction
+  labels:
+    app: churn-api
+    tier: api
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: churn-api
+  template:
+    metadata:
+      labels:
+        app: churn-api
+        tier: api
+    spec:
+      containers:
+      - name: api
+        image: gcr.io/your-project/churn-prediction:latest  # UPDATE THIS
+        imagePullPolicy: Always
+        command: ["uvicorn"]
+        args:
+          - "src.inference.api:app"
+          - "--host"
+          - "0.0.0.0"
+          - "--port"
+          - "8000"
+          - "--workers"
+          - "4"
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        volumeMounts:
+        - name: feature-store
+          mountPath: /app/feature_store
+        - name: model-registry
+          mountPath: /app/models/registry
+        - name: logs
+          mountPath: /app/logs
+        - name: config
+          mountPath: /app/configs
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: feature-store
+        persistentVolumeClaim:
+          claimName: feature-store-pvc
+      - name: model-registry
+        persistentVolumeClaim:
+          claimName: model-registry-pvc
+      - name: logs
+        persistentVolumeClaim:
+          claimName: logs-pvc
+      - name: config
+        configMap:
+          name: churn-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: churn-api
+  namespace: churn-prediction
+  labels:
+    app: churn-api
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: churn-api
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: churn-api-hpa
+  namespace: churn-prediction
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: churn-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

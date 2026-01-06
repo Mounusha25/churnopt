@@ -1,0 +1,177 @@
+# Training Pipeline Configuration
+
+# Model selection
+model:
+  type: "logistic"  # Options: "logistic", "xgboost", "lightgbm", "ensemble"
+  
+  # XGBoost hyperparameters
+  xgboost:
+    objective: "binary:logistic"
+    eval_metric: "auc"
+    max_depth: 6
+    learning_rate: 0.05
+    n_estimators: 200
+    min_child_weight: 1
+    subsample: 0.8
+    colsample_bytree: 0.8
+    gamma: 0.1
+    reg_alpha: 0.1
+    reg_lambda: 1.0
+    scale_pos_weight: 3.0  # For class imbalance
+    random_state: 42
+  
+  # LightGBM hyperparameters (alternative)
+  lightgbm:
+    objective: "binary"
+    metric: "auc"
+    num_leaves: 31
+    learning_rate: 0.05
+    n_estimators: 200
+    feature_fraction: 0.8
+    bagging_fraction: 0.8
+    bagging_freq: 5
+    min_child_samples: 20
+    reg_alpha: 0.1
+    reg_lambda: 1.0
+    class_weight: "balanced"
+    random_state: 42
+  
+  # Logistic Regression (baseline)
+  logistic:
+    penalty: "l2"
+    C: 1.0
+    solver: "lbfgs"
+    max_iter: 1000
+    class_weight: "balanced"
+    random_state: 42
+
+# Training data
+data:
+  # Time window for training
+  train_start_date: "2020-01-01"
+  train_end_date: "2024-06-30"
+  
+  # Validation period
+  val_start_date: "2024-07-01"
+  val_end_date: "2024-09-30"
+  
+  # Test period
+  test_start_date: "2024-10-01"
+  test_end_date: "2024-12-31"
+  
+  # Feature set version
+  feature_schema_version: "v1"
+
+# Cross-validation strategy
+cross_validation:
+  # Time-series aware CV
+  strategy: "time_series_split"
+  n_splits: 5
+  
+  # Gap between train and validation (to simulate production delay)
+  gap_months: 1
+  
+  # Ensure temporal order
+  shuffle: false
+
+# Class imbalance handling
+imbalance:
+  method: "class_weights"  # Options: "class_weights", "smote", "undersampling", "focal_loss"
+  
+  # SMOTE settings (if used)
+  smote:
+    sampling_strategy: 0.5
+    k_neighbors: 5
+  
+  # Undersampling ratio (if used)
+  undersampling_ratio: 0.3
+
+# Hyperparameter tuning
+hyperparameter_tuning:
+  enabled: true
+  method: "random_search"  # Options: "grid_search", "random_search", "optuna"
+  n_iter: 50
+  cv_folds: 3
+  
+  # Search space (for XGBoost)
+  search_space:
+    max_depth: [3, 5, 7, 9]
+    learning_rate: [0.01, 0.05, 0.1, 0.2]
+    n_estimators: [100, 200, 300]
+    min_child_weight: [1, 3, 5]
+    subsample: [0.7, 0.8, 0.9, 1.0]
+    colsample_bytree: [0.7, 0.8, 0.9, 1.0]
+    gamma: [0, 0.1, 0.2, 0.5]
+
+# Evaluation metrics
+metrics:
+  primary: "roc_auc"  # Metric for model selection
+  
+  additional:
+    - "pr_auc"
+    - "log_loss"
+    - "brier_score"
+    - "f1_score"
+    - "precision"
+    - "recall"
+  
+  # Business metrics
+  business:
+    - "precision_at_k"  # K = top 10% predicted probability
+    - "expected_profit"
+    - "lift_at_k"
+
+# Calibration
+calibration:
+  enabled: true
+  method: "isotonic"  # Options: "isotonic", "platt"
+
+# Feature importance
+feature_importance:
+  compute_shap: true
+  shap_sample_size: 1000  # Subsample for speed
+  
+  # Save top N features
+  top_n_features: 20
+
+# Experiment tracking
+mlflow:
+  enabled: true
+  tracking_uri: "mlruns"
+  experiment_name: "churn_prediction"
+  
+  # What to log
+  log_params: true
+  log_metrics: true
+  log_model: true
+  log_artifacts: true
+
+# Model registry
+registry:
+  path: "models"
+  registry_file: "models/registry.json"
+  
+  # Model versioning
+  version_prefix: "model_v"
+  
+  # Promotion criteria
+  promotion:
+    min_roc_auc: 0.75
+    min_pr_auc: 0.50
+    min_improvement_over_production: 0.02  # 2% relative improvement
+
+# Training pipeline behavior
+pipeline:
+  # Save intermediate outputs
+  save_preprocessed_data: true
+  save_predictions: true
+  
+  # Generate evaluation report
+  generate_report: true
+  report_path: "outputs/reports"
+  
+  # Parallel processing
+  n_jobs: -1  # Use all cores
+
+# Random seed
+random_seed: 42

@@ -1,0 +1,119 @@
+# Feature Engineering Configuration
+
+# Feature groups to compute
+feature_groups:
+  
+  # Basic customer demographics
+  demographics:
+    - customer_id
+    - gender
+    - senior_citizen
+    - partner
+    - dependents
+  
+  # Contract and service features
+  contract:
+    - contract_type
+    - contract_remaining_months
+    - paperless_billing
+    - payment_method
+    - payment_method_switch_count  # rolling
+  
+  # Usage and billing
+  billing:
+    - monthly_charges
+    - total_charges
+    - avg_monthly_charges_3m
+    - avg_monthly_charges_6m
+    - charges_trend_6m  # linear regression slope
+    - charges_volatility_3m  # std dev
+    - charges_percentile_change_3m
+  
+  # Service adoption
+  services:
+    - phone_service
+    - multiple_lines
+    - internet_service
+    - online_security
+    - online_backup
+    - device_protection
+    - tech_support
+    - streaming_tv
+    - streaming_movies
+    - num_services_total
+    - num_services_added_3m
+    - num_services_removed_3m
+  
+  # Temporal features
+  temporal:
+    - tenure_months
+    - tenure_bucket  # categorical: 0-6, 6-12, 12-24, 24+
+    - tenure_change_rate
+    - months_since_last_upgrade
+  
+  # Behavioral patterns (simulated)
+  behavioral:
+    - num_late_payments_6m
+    - num_support_tickets_3m
+    - num_plan_changes_6m
+    - days_since_last_contact
+
+# Rolling aggregation windows (in months)
+rolling_windows:
+  short: 3
+  medium: 6
+  long: 12
+
+# Feature transformations
+transformations:
+  log_features:
+    - total_charges
+    - monthly_charges
+  
+  standardize_features:
+    - tenure_months
+    - monthly_charges
+    - total_charges
+  
+  one_hot_encode:
+    - contract_type
+    - payment_method
+    - internet_service
+    - gender
+
+# Feature selection
+selection:
+  # Correlation threshold for removing redundant features
+  correlation_threshold: 0.95
+  
+  # Minimum importance threshold (from model)
+  min_importance: 0.001
+  
+  # Maximum number of features
+  max_features: 50
+
+# Feature store settings
+feature_store:
+  # Feature schema versioning
+  schema_version: "v1"
+  
+  # Offline store (for training)
+  offline:
+    path: "feature_store/offline"
+    format: "parquet"
+    partitioning: ["snapshot_date"]
+  
+  # Online store (for real-time inference)
+  online:
+    type: "sqlite"  # or "redis" for production
+    path: "feature_store/online/features.db"
+    ttl_days: 90  # Time-to-live for online features
+
+# Point-in-time correctness enforcement
+pit_correctness:
+  # Ensure no future data leakage
+  strict_mode: true
+  
+  # Validation checks
+  validate_temporal_order: true
+  validate_label_timing: true

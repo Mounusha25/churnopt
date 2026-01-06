@@ -1,0 +1,46 @@
+# Data Configuration
+
+# Paths
+paths:
+  raw_data: "data/raw/telco.csv"
+  interim_data: "data/interim"
+  processed_data: "data/processed"
+  datasets_output: "datasets"
+
+# Temporal settings
+temporal:
+  # Monthly billing cycle
+  frequency: "monthly"
+  
+  # Date range for temporal expansion
+  start_date: "2020-01-01"
+  end_date: "2024-12-31"
+  
+  # Training window (months of history)
+  training_window_months: 12
+  
+  # Prediction horizon (how far ahead to predict churn)
+  prediction_horizon_months: 1
+
+# Data cleaning
+cleaning:
+  # Handle missing values
+  drop_missing_threshold: 0.5  # Drop columns with >50% missing
+  
+  # Outlier detection
+  outlier_method: "iqr"  # or "zscore"
+  outlier_threshold: 3.0
+
+# Feature engineering windows
+feature_windows:
+  short_term: 3   # months
+  medium_term: 6  # months
+  long_term: 12   # months
+
+# Output formats
+output:
+  format: "parquet"  # or "csv"
+  compression: "snappy"
+  
+# Random seed for reproducibility
+random_seed: 42
