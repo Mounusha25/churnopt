@@ -338,6 +338,6 @@ Raw Data → Cleaning → Temporal Builder → Features → Model → Prediction
 
 ---
 
-**Document Owner:** ML Engineering Team  
+**Document Owner:** Mounusha Ram Metti  
 **Last Updated:** January 5, 2026  
 **Next Review:** February 2026

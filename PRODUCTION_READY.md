@@ -12,7 +12,7 @@ This Customer Churn Prediction Platform is a **production-ready ML system** that
 
 ### Key Achievement
 
-**We solved the problem that most ML practitioners miss**: separating unconstrained economic optimum from constrained production deployment.
+**This system solves the problem that most ML practitioners miss**: separating unconstrained economic optimum from constrained production deployment.
 
 - **Unconstrained optimum**: 25,100 customers, $1.24M profit (strategic planning)
 - **Production deployment**: 659 customers, $2.3K profit (real-world $50K budget)
@@ -59,7 +59,7 @@ The 3.6% difference is due to `min_churn_probability` filter (0.30), not a bug.
 - Budget: $50,000 monthly retention spend
 - Capacity: 1,000 customer max
 - **Result**: Targets 659 customers (budget exhausted)
-- **ROI**: 104.6% (high because we take best customers first)
+- **ROI**: 104.6% (high because the system takes best customers first)
 
 **The system correctly**:
 1. Ranks 20,409 positive-EV customers by expected value
@@ -201,7 +201,7 @@ p_breakeven = C_fp / (success_rate × CLV - C_tp + C_fp)
 
 ### 4. **Production Realism**
 
-> "High production ROI (104.6%) vs lower unconstrained ROI (53%) **proves** we're correctly prioritizing highest-value customers first. As we scale toward the optimum, ROI decreases due to diminishing returns—exactly as economic theory predicts."
+> "High production ROI (104.6%) vs lower unconstrained ROI (53%) **proves** the system is correctly prioritizing highest-value customers first. As the system scales toward the optimum, ROI decreases due to diminishing returns—exactly as economic theory predicts."
 
 ### 5. **Senior-Level Design**
 

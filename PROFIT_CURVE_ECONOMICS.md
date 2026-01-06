@@ -75,7 +75,7 @@ See visualization: [`outputs/reports/profit_curve.png`](outputs/reports/profit_c
 
 **Curve Behavior:**
 1. **Sharp Rise** (0 → 5,000 customers): ROI = 126%, high-probability customers
-2. **Continued Growth** (5,000 → 25,100): ROI decreases to 53% as we target lower probabilities
+2. **Continued Growth** (5,000 → 25,100): ROI decreases to 53% as the system targets lower probabilities
 3. **PEAK at 25,100** customers where **marginal EV crosses zero** (p ≈ 0.71)
 4. **Decline** (25,100+): False positive penalty dominates, negative marginal profit
 
@@ -91,7 +91,7 @@ Simplifies to:
 
 **Marginal EV = 0** when: p = 300/422.8 = **0.710**
 
-As we move down the ranked list:
+As the system moves down the ranked list:
 - **p decreases** → True positive value drops
 - **(1-p) increases** → False positive loss grows  
 - Eventually **(1-p) × C_fp dominates** → Marginal EV becomes negative
@@ -104,13 +104,13 @@ This is **guaranteed mathematically** with proper cost modeling.
 ### Interview Gold
 When asked "Why does your profit curve peak?":
 
-> "Because I model false positive costs explicitly. As we target lower-probability customers, the (1-p) × C_fp term grows and eventually dominates, making marginal profit negative. The global optimum occurs where marginal EV crosses zero, not at maximum targeting."
+> "Because I model false positive costs explicitly. As the system targets lower-probability customers, the (1-p) × C_fp term grows and eventually dominates, making marginal profit negative. The global optimum occurs where marginal EV crosses zero, not at maximum targeting."
 
 ### Business Value
 - **Prevents over-targeting**: Stops at 25,100 customers, not 100,000
-- **Maximizes profit**: $1.24M vs potentially negative if we kept going
+- **Maximizes profit**: $1.24M vs potentially negative if targeting continued
 - **Realistic economics**: Accounts for wasted incentives and gaming behavior
-- **Explainable**: Can justify to stakeholders why we DON'T target everyone
+- **Explainable**: Can justify to stakeholders why the system doesn't target everyone
 
 ### Technical Excellence
 - **Non-monotonic optimization**: Demonstrates understanding of diminishing returns
