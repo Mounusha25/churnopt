@@ -8,7 +8,7 @@ from .loader import TelcoDataLoader, run_data_ingestion
 from .temporal_builder import TemporalDatasetBuilder
 
 __all__ = [
-    'TelcoDataLoader',
-    'TemporalDatasetBuilder',
-    'run_data_ingestion',
+    "TelcoDataLoader",
+    "TemporalDatasetBuilder",
+    "run_data_ingestion",
 ]

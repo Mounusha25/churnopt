@@ -4,4 +4,4 @@ Inference module.
 
 from .batch import BatchInference
 
-__all__ = ['BatchInference']
+__all__ = ["BatchInference"]
