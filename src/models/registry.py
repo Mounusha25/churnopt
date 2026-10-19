@@ -62,6 +62,12 @@ class ModelRegistry:
         """
         self.logger.info(f"Registering model: {model_version}")
 
+        registry = load_json(str(self.registry_file))
+        if any(model["model_version"] == model_version for model in registry["models"]):
+            raise ValueError(f"Model version already registered: {model_version}")
+
+        if status not in {"staging", "production", "archived"}:
+            raise ValueError(f"Invalid model status: {status}")
         # Create model version directory
         model_dir = self.registry_path / model_version
         ensure_dir(str(model_dir))
@@ -87,7 +93,6 @@ class ModelRegistry:
         save_json(entry, str(metadata_file))
 
         # Update registry
-        registry = load_json(str(self.registry_file))
         registry["models"].append(entry)
         save_json(registry, str(self.registry_file))
 
@@ -95,7 +100,11 @@ class ModelRegistry:
 
         return entry
 
-    def promote_to_production(self, model_version: str) -> None:
+    def promote_to_production(
+        self,
+        model_version: str,
+        reason: str = "manual promotion",
+    ) -> Dict[str, Any]:
         """
         Promote a model to production status.
 
@@ -106,9 +115,21 @@ class ModelRegistry:
 
         registry = load_json(str(self.registry_file))
 
-        # Demote current production model
+        candidate = next(
+            (model for model in registry["models"] if model["model_version"] == model_version),
+            None,
+        )
+        if candidate is None:
+            raise ValueError(f"Model version not found: {model_version}")
+
+        previous_production = next(
+            (model for model in registry["models"] if model["status"] == "production"),
+            None,
+        )
+
+        # Demote current production model only after the candidate is validated.
         for model in registry["models"]:
-            if model["status"] == "production":
+            if model["status"] == "production" and model["model_version"] != model_version:
                 model["status"] = "archived"
                 self.logger.info(f"  Archived previous production model: {model['model_version']}")
 
@@ -117,10 +138,26 @@ class ModelRegistry:
             if model["model_version"] == model_version:
                 model["status"] = "production"
                 model["promoted_at"] = datetime.now().isoformat()
+                model["promotion_reason"] = reason
                 self.logger.info(f"  {model_version} is now in production")
                 break
 
         save_json(registry, str(self.registry_file))
+
+        return {
+            "model_version": model_version,
+            "previous_production_version": (
+                previous_production["model_version"] if previous_production else None
+            ),
+            "promoted_at": candidate.get("promoted_at", datetime.now().isoformat()),
+            "reason": reason,
+        }
+
+    def rollback_to_model(self, model_version: str, reason: str) -> Dict[str, Any]:
+        """Restore a previously registered model as production with an audit reason."""
+        if not reason.strip():
+            raise ValueError("A rollback reason is required")
+        return self.promote_to_production(model_version, reason=f"rollback: {reason}")
 
     def get_production_model(self) -> Optional[Dict[str, Any]]:
         """

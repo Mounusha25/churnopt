@@ -1,6 +1,4 @@
-"""
-Models module.
-"""
+"""Model lifecycle components."""
 
 from .registry import ModelRegistry
 

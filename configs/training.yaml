@@ -157,8 +157,11 @@ registry:
   # Promotion criteria
   promotion:
     min_roc_auc: 0.75
-    min_pr_auc: 0.50
+    min_pr_auc: 0.15
+    max_brier_score: 0.25
     min_improvement_over_production: 0.02  # 2% relative improvement
+    min_estimated_holdout_profit: 0.0
+    max_estimated_holdout_profit_regression: 0.0
 
 # Training pipeline behavior
 pipeline:

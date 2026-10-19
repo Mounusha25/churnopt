@@ -1,0 +1,40 @@
+{
+  "evaluated_at": "2026-10-19T02:45:19.077149+00:00",
+  "candidate_version": "model_v_20260105_184900",
+  "champion_version": "model_v_20260105_012042",
+  "candidate_metrics": {
+    "roc_auc": 0.9175967515133033,
+    "pr_auc": 0.22550539091591013,
+    "brier_score": 0.19975025246196235,
+    "expected_profit": 82018.1006754948,
+    "estimated_holdout_profit": -149149.296,
+    "targeted_customers": 577,
+    "campaign_cost": 49947.83426901174
+  },
+  "champion_metrics": {
+    "roc_auc": 0.9170046667255889,
+    "pr_auc": 0.24246801883706465,
+    "brier_score": 0.22139157424630412,
+    "expected_profit": 85385.39345370172,
+    "estimated_holdout_profit": -156071.488,
+    "targeted_customers": 570,
+    "campaign_cost": 49922.68314154307
+  },
+  "checks": {
+    "minimum_roc_auc": true,
+    "minimum_pr_auc": true,
+    "maximum_brier_score": true,
+    "minimum_estimated_holdout_profit": false,
+    "roc_auc_improvement": false,
+    "business_value_not_regressed": true
+  },
+  "approved": false,
+  "promotion_requested": false,
+  "promoted": false,
+  "validation": {
+    "rows": 15379,
+    "start_date": "2024-10-01",
+    "end_date": "2024-12-01"
+  },
+  "report_path": "outputs/promotion_reports/promotion_model_v_20260105_184900_20261019_024519.json"
+}

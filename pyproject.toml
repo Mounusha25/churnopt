@@ -76,6 +76,7 @@ churn-train = "src.training_pipeline.run:main"
 churn-infer = "src.inference.batch:main"
 churn-monitor = "src.monitoring.drift_detector:main"
 churn-api = "src.inference.api:start_server"
+churn-promote = "src.models.promotion:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

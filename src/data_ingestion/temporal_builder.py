@@ -11,6 +11,7 @@ Key principle: At snapshot_date T, we can only use information available up to T
 """
 
 from datetime import datetime
+from hashlib import sha256
 from typing import Any, Dict
 
 import pandas as pd
@@ -86,15 +87,26 @@ class TemporalDatasetBuilder:
             # This creates a more realistic temporal distribution of churn
             import random
 
-            random.seed(hash(customer_id) % (2**32))  # Deterministic but varies per customer
+            # Python's built-in hash is randomized between processes. A stable
+            # digest keeps generated temporal datasets reproducible across local
+            # runs, CI, and training environments.
+            stable_seed = int(sha256(str(customer_id).encode()).hexdigest()[:8], 16)
+            random_generator = random.Random(stable_seed)
 
             # Churn could happen any time from month 1 to their final tenure month
             # Place churn uniformly in the observation window
-            min_churn_month = max(1, int(tenure_months * 0.1))  # At least 10% into tenure
-            max_churn_offset = min(
-                tenure_months, get_months_between(observation_start, observation_end)
+            first_observable_offset = (
+                get_months_between(customer_start, observation_start) + self.prediction_horizon
             )
-            churn_offset_months = random.randint(min_churn_month, max_churn_offset)
+            min_churn_month = max(1, int(tenure_months * 0.1), first_observable_offset)
+            max_churn_offset = min(
+                tenure_months,
+                get_months_between(customer_start, observation_end),
+            )
+            churn_offset_months = random_generator.randint(
+                min(min_churn_month, max_churn_offset),
+                max_churn_offset,
+            )
 
             customer_churn_date = add_months(customer_start, churn_offset_months)
             # Last snapshot should be BEFORE churn (to predict it)
@@ -156,7 +168,13 @@ class TemporalDatasetBuilder:
                 "payment_method": customer_row.get("payment_method", ""),
                 # Financial features (will be augmented with rolling features later)
                 "monthly_charges": customer_row.get("monthly_charges", 0),
-                "total_charges": customer_row.get("total_charges", 0),
+                # Use only revenue observable by this snapshot. Copying the final
+                # lifetime total into historical rows leaks future billing data.
+                "total_charges": (
+                    float(customer_row.get("total_charges", 0))
+                    / max(tenure_months, 1)
+                    * max(tenure_at_snapshot, 0)
+                ),
                 # Metadata
                 "months_until_churn": months_until_churn,
             }

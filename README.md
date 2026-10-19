@@ -46,12 +46,14 @@ A decision-optimized churn system that:
 
 ```
 Raw Data → Temporal Features → Model Training
+         → Champion/Challenger Gate → Model Registry
          → Batch Inference → Decision Engine
          → Budget-Constrained Action Plan
 ```
 
 - Monthly batch execution
 - Versioned models and features
+- Quality- and profit-gated model promotion with rollback support
 - CSV action plan for CRM execution
 - Human-in-the-loop deployment
 
@@ -73,6 +75,22 @@ ls outputs/action_plan.csv              # 659 targeted customers
 ls outputs/reports/profit_curve.png     # Economic analysis
 ```
 
+### Evaluate a challenger model
+
+Every staging model must beat absolute quality requirements and the current production model
+on a temporal holdout before it can be promoted. A rejected candidate leaves production unchanged.
+
+```bash
+python -m src.models.promotion \
+  --candidate-version model_v_YYYYMMDD_HHMMSS \
+  --validation-data feature_store/offline/customer_features_v1/features.parquet \
+  --promote
+```
+
+The gate evaluates ROC-AUC, PR-AUC, Brier score, and estimated holdout campaign profit.
+Its decision and metric comparison are saved under `outputs/promotion_reports/` for auditability.
+Promotion thresholds are version-controlled in `configs/training.yaml`.
+
 ---
 
 ## Repository Structure
@@ -84,6 +102,8 @@ src/
 ├── training_pipeline/     # Model training
 ├── inference/             # Batch scoring
 ├── decision_engine/       # EV optimization & budget gating
+├── models/                # Registry, promotion gates & rollback
+├── monitoring/            # Drift and model-health checks
 └── analysis/              # Profit curve analysis
 
 configs/

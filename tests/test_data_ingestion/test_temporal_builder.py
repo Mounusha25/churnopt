@@ -1,12 +1,9 @@
-"""
-Unit tests for the temporal dataset builder.
+"""Unit tests for the temporal dataset builder.
 
 The builder turns one row per customer into monthly snapshots. These tests check the properties
 that matter for a leak-free churn model: snapshots stay inside the observation window, move forward
 one month at a time, never look past the end of the window, and carry the label only on the
 snapshot exactly `prediction_horizon_months` before churn.
-
-Run with: python -m pytest tests/test_data_ingestion/test_temporal_builder.py -v
 """
 
 import pandas as pd
@@ -109,13 +106,10 @@ class TestExpandCustomer:
 
     def test_active_customer_is_observed_through_the_end_of_the_window(self, builder):
         snaps = builder.expand_customer_to_snapshots(make_customer("A", 12, 0), START, END)
-
         assert snaps["snapshot_date"].max() == END
 
     def test_churned_customer_has_no_snapshot_at_or_after_churn(self, builder):
-        """No future leakage: the last snapshot comes before the end of the window."""
         snaps = builder.expand_customer_to_snapshots(make_customer("C", 24, 1), START, END)
-
         assert snaps["snapshot_date"].max() < END
 
     def test_churn_label_only_on_snapshot_exactly_one_horizon_before_churn(self, builder):
@@ -124,45 +118,47 @@ class TestExpandCustomer:
         positives = snaps[snaps["churn_label_next_period"] == 1]
         assert len(positives) <= 1
         assert (positives["months_until_churn"] == HORIZON).all()
-        # snapshots further from churn are labelled 0 and know how far away churn is
         earlier = snaps[snaps["churn_label_next_period"] == 0]
         assert (earlier["months_until_churn"] > HORIZON).all()
 
     def test_static_features_are_copied_to_every_snapshot(self, builder):
         snaps = builder.expand_customer_to_snapshots(make_customer("A", 12, 0), START, END)
-
         assert (snaps["monthly_charges"] == 50.0).all()
         assert (snaps["contract"] == "Month-to-month").all()
         assert (snaps["payment_method"] == "Electronic check").all()
 
+    def test_historical_total_charges_use_only_observed_tenure(self, builder):
+        customer = make_customer("A", 12, 0)
+        snaps = builder.expand_customer_to_snapshots(customer, START, END)
+
+        expected = customer["total_charges"] / customer["tenure"] * snaps["tenure_months"]
+        pd.testing.assert_series_equal(snaps["total_charges"], expected, check_names=False)
+        assert snaps["total_charges"].is_monotonic_increasing
+        assert snaps["total_charges"].max() <= customer["total_charges"]
+
     def test_longer_tenure_never_gives_fewer_snapshots(self, builder):
         short = builder.expand_customer_to_snapshots(make_customer("A", 3, 0), START, END)
         long_ = builder.expand_customer_to_snapshots(make_customer("A", 24, 0), START, END)
-
         assert len(long_) >= len(short) >= 1
 
 
 class TestBuildTemporalDataset:
     def test_has_multiple_snapshots_per_customer(self, builder, customers):
         df = builder.build_temporal_dataset(customers)
-
         assert set(df["customer_id"]) == set(customers["customer_id"])
         assert len(df) > len(customers)
 
     def test_no_duplicate_customer_date_pairs(self, builder, customers):
         df = builder.build_temporal_dataset(customers)
-
         assert not df.duplicated(["customer_id", "snapshot_date"]).any()
 
     def test_sorted_by_customer_then_date(self, builder, customers):
         df = builder.build_temporal_dataset(customers)
-
         expected = df.sort_values(["customer_id", "snapshot_date"]).reset_index(drop=True)
         pd.testing.assert_frame_equal(df, expected)
 
     def test_labels_are_binary_and_active_customers_never_positive(self, builder, customers):
         df = builder.build_temporal_dataset(customers)
-
         assert df["churn_label_next_period"].isin([0, 1]).all()
         active = df[df["customer_id"].isin(["C001", "C002"])]
         assert (active["churn_label_next_period"] == 0).all()
@@ -171,7 +167,6 @@ class TestBuildTemporalDataset:
 class TestRun:
     def test_run_returns_and_saves_both_tables(self, builder, config, customers, tmp_path):
         result = builder.run(customers)
-
         assert set(result) == {"temporal", "customers"}
         out = tmp_path / "datasets"
         assert (out / "monthly_customer_snapshots.parquet").exists()
@@ -179,7 +174,6 @@ class TestRun:
 
     def test_customer_master_has_one_row_per_customer(self, builder, customers):
         result = builder.run(customers)
-
         master = result["customers"]
         assert len(master) == len(customers)
         assert master["customer_id"].is_unique
