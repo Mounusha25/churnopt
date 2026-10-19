@@ -1,5 +1,7 @@
 # Customer Churn Prediction – Decision-Optimized ML System
 
+![ChurnOpt decision-optimized ML system banner](banner.png)
+
 **0.91 ROC-AUC | Budget-Constrained Deployment | Profit-Optimized Targeting**
 
 A production-ready, batch-oriented ML system for customer churn prediction that separates prediction from decision-making and optimizes expected business value under real constraints.
